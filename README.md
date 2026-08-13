@@ -1326,7 +1326,7 @@ And above all:
 
 # LICENSE
 
-MIT License.
+Apache License.
 
 See `LICENSE` for details.
 
