@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "Fractal-DOOM-Abyss-Engine"
+name = "fractal-doom-abyss-engine"
 version = "0.1.0"

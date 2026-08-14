@@ -1,6 +1,11 @@
 [package]
-name = "Fractal-DOOM-Abyss-Engine"
+name = "fractal-doom-abyss-engine"
 version = "0.1.0"
 edition = "2024"
+default-run = "fractal-doom-abyss-engine"
 
 [dependencies]
+
+[[bin]]
+name = "fractal-doom-abyss-engine"
+path = "engine/src/main.rs"
