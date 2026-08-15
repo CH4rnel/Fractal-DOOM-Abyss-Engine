@@ -1,10 +1,6 @@
-// ⛧-Doom-Slayer-⛧
+//! ⛧-Doom-Slayer-⛧
+//! Deterministic subsystem domains of the Abyss.
 
-/// Deterministic subsystem domains of the Abyss.
-///
-/// Every procedural subsystem receives its own domain.
-/// This prevents unrelated systems from influencing each
-/// other's deterministic output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RandomDomain {
     Geometry,
@@ -17,10 +13,6 @@ pub enum RandomDomain {
 }
 
 impl RandomDomain {
-    /// Returns the stable textual identifier of the domain.
-    ///
-    /// These identifiers are part of the deterministic contract.
-    /// Changing them changes generated universes.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Geometry => "geometry",
@@ -31,6 +23,20 @@ impl RandomDomain {
             Self::Lore => "lore",
             Self::Events => "events",
         }
+    }
+
+    /// Returns an iterator over all domains to generate the Universe Manifest.
+    pub fn iter_all() -> impl Iterator<Item = RandomDomain> {
+        [
+            Self::Geometry,
+            Self::Demons,
+            Self::Mining,
+            Self::Loot,
+            Self::Audio,
+            Self::Lore,
+            Self::Events,
+        ]
+        .into_iter()
     }
 }
 
