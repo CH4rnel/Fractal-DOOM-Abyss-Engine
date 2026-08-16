@@ -9,8 +9,11 @@ use core::abyss::MutationRecord;
 use core::random::RandomDomain;
 use core::reality::RealityKernel;
 use core::seed::Seed;
-use fractal::{sdf_sphere, Scene, Vec3};
-use world::{WorldGenerator, WorldStreamer};
+use fractal::{Scene, Vec3, sdf_sphere};
+use world::{
+    Biome, CHUNK_SIZE, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate,
+    WorldGenerator, WorldStreamer,
+};
 
 fn main() {
     println!("══════════════════════════════════════════════");
@@ -67,15 +70,43 @@ fn main() {
 
     println!();
     println!("═══════ ABYSS WORLD GENERATOR ═══════");
+    println!("[ WORLD ] Chunk Size: {:.1} units", CHUNK_SIZE);
 
     let generator = WorldGenerator::new(&reality);
-    let biome = generator.biome();
+    let biome: Biome = generator.biome();
     println!("[ WORLD ] Current Biome: {}", biome.as_str());
-    println!("[ WORLD ] Fractal Iterations: {}", biome.fractal_iterations());
+    println!(
+        "[ WORLD ] Fractal Iterations: {}",
+        biome.fractal_iterations()
+    );
     println!("[ WORLD ] Fractal Power: {:.1}", biome.fractal_power());
-    println!("[ WORLD ] Corruption Intensity: {:.2}", biome.corruption_intensity());
+    println!(
+        "[ WORLD ] Corruption Intensity: {:.2}",
+        biome.corruption_intensity()
+    );
 
-    // Evaluate world at a few points
+    // Demonstrate chunk construction, lifecycle, and evaluation.
+    let coord = ChunkCoord::new(0, 0, 0);
+    let mut chunk = Chunk::new(coord, reality.seed());
+    chunk.activate();
+    println!(
+        "[ WORLD ] Chunk ({},{},{}) state: {:?}",
+        chunk.coord.x, chunk.coord.y, chunk.coord.z, chunk.state
+    );
+
+    // Verify lifecycle state through the ChunkState enum.
+    let is_active = matches!(chunk.state, ChunkState::Active | ChunkState::Corrupted);
+    println!("[ WORLD ] Chunk present: {}", is_active);
+
+    let evaluation: ChunkEvaluation = generator.evaluate_chunk(&chunk);
+    println!(
+        "[ WORLD ] Chunk eval: biome={}, density={:.2}, solid={}",
+        evaluation.biome.as_str(),
+        evaluation.center_density,
+        evaluation.is_mostly_solid
+    );
+
+    // Evaluate world at a few free points.
     let test_points = [
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(5.0, 5.0, 5.0),
@@ -85,7 +116,11 @@ fn main() {
     for (i, pos) in test_points.iter().enumerate() {
         let sdf = generator.evaluate_sdf(*pos);
         let density = generator.density(*pos);
-        let solid = if generator.is_solid(*pos) { "SOLID" } else { "VOID" };
+        let solid = if generator.is_solid(*pos) {
+            "SOLID"
+        } else {
+            "VOID"
+        };
         println!(
             "[ WORLD ] Point {}: ({:.1}, {:.1}, {:.1}) -> SDF: {:.4}, Density: {:.2}, {}",
             i, pos.x, pos.y, pos.z, sdf, density, solid
@@ -97,12 +132,18 @@ fn main() {
 
     let mut streamer = WorldStreamer::new(reality.seed(), 1);
     let player_pos = Vec3::new(0.0, 0.0, 0.0);
-    let update = streamer.update(player_pos);
+    let update: StreamUpdate = streamer.update(player_pos);
 
-    println!("[ STREAM ] Player at: ({:.1}, {:.1}, {:.1})", player_pos.x, player_pos.y, player_pos.z);
+    println!(
+        "[ STREAM ] Player at: ({:.1}, {:.1}, {:.1})",
+        player_pos.x, player_pos.y, player_pos.z
+    );
     println!("[ STREAM ] Chunks loaded: {}", update.loaded);
     println!("[ STREAM ] Chunks unloaded: {}", update.unloaded);
-    println!("[ STREAM ] Total active chunks: {}", streamer.loaded_count());
+    println!(
+        "[ STREAM ] Total active chunks: {}",
+        streamer.loaded_count()
+    );
 
     println!();
     println!("═══════ MUTATION LOG ═══════");

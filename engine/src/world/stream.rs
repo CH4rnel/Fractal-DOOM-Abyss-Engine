@@ -6,20 +6,13 @@ use std::collections::HashMap;
 use crate::core::reality::RealityKernel;
 use crate::fractal::math::Vec3;
 
-use super::chunk::{Chunk, ChunkCoord, ChunkState, CHUNK_SIZE};
+use super::chunk::{CHUNK_SIZE, Chunk, ChunkCoord};
 use super::generator::WorldGenerator;
 
 /// Manages the active chunks around a player position.
-///
-/// The streamer loads chunks within a radius and unloads
-/// chunks that fall outside. This creates an infinite world
-/// without loading everything at once.
 pub struct WorldStreamer {
-    /// Currently loaded chunks, keyed by coordinates.
     chunks: HashMap<ChunkCoord, Chunk>,
-    /// The radius (in chunks) around the player to keep loaded.
     load_radius: i32,
-    /// The universe seed for deterministic generation.
     universe_seed: crate::core::seed::Seed,
 }
 
@@ -39,13 +32,9 @@ impl WorldStreamer {
     }
 
     /// Updates the streamed chunks around the given world position.
-    ///
-    /// This loads chunks within the radius and unloads those outside.
-    /// Returns the number of chunks loaded and unloaded.
     pub fn update(&mut self, player_pos: Vec3) -> StreamUpdate {
         let player_chunk = self.world_to_chunk(player_pos);
 
-        // Determine which chunks should be loaded
         let mut needed: Vec<ChunkCoord> = Vec::new();
         for dx in -self.load_radius..=self.load_radius {
             for dy in -self.load_radius..=self.load_radius {
@@ -60,7 +49,6 @@ impl WorldStreamer {
             }
         }
 
-        // Load needed chunks
         let mut loaded = 0;
         for coord in &needed {
             if !self.chunks.contains_key(coord) {
@@ -71,7 +59,6 @@ impl WorldStreamer {
             }
         }
 
-        // Unload chunks outside the radius
         let mut unloaded = 0;
         let coords_to_remove: Vec<ChunkCoord> = self
             .chunks
@@ -109,8 +96,8 @@ impl WorldStreamer {
 
     /// Evaluates the world at a position using the current reality state.
     pub fn evaluate_at(&self, pos: Vec3, kernel: &RealityKernel) -> f64 {
-        let gen = WorldGenerator::new(kernel);
-        gen.evaluate_sdf(pos)
+        let world_gen = WorldGenerator::new(kernel);
+        world_gen.evaluate_sdf(pos)
     }
 }
 
@@ -133,7 +120,6 @@ mod tests {
 
         let update = streamer.update(Vec3::new(0.0, 0.0, 0.0));
 
-        // With radius 1, we expect 3x3x3 = 27 chunks
         assert_eq!(update.loaded, 27);
         assert_eq!(streamer.loaded_count(), 27);
     }
@@ -143,14 +129,11 @@ mod tests {
         let universe = Seed::new(666);
         let mut streamer = WorldStreamer::new(universe, 1);
 
-        // Load around origin
         streamer.update(Vec3::new(0.0, 0.0, 0.0));
         assert_eq!(streamer.loaded_count(), 27);
 
-        // Move far away
         let update = streamer.update(Vec3::new(1000.0, 0.0, 0.0));
 
-        // Old chunks unloaded, new ones loaded
         assert!(update.unloaded > 0);
         assert_eq!(streamer.loaded_count(), 27);
     }
