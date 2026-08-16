@@ -2,6 +2,7 @@
 //! Fractal DOOM: Abyss Engine - Execution Harness
 
 mod core;
+mod demon;
 mod fractal;
 mod world;
 
@@ -9,10 +10,11 @@ use core::abyss::MutationRecord;
 use core::random::RandomDomain;
 use core::reality::RealityKernel;
 use core::seed::Seed;
-use fractal::{Scene, Vec3, sdf_sphere};
+use demon::{DemonIdentity, DemonSeed, ThreatLevel};
+use fractal::{sdf_sphere, Scene, Vec3};
 use world::{
-    Biome, CHUNK_SIZE, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate,
-    WorldGenerator, WorldStreamer,
+    Biome, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate, WorldGenerator,
+    WorldStreamer, CHUNK_SIZE,
 };
 
 fn main() {
@@ -75,17 +77,14 @@ fn main() {
     let generator = WorldGenerator::new(&reality);
     let biome: Biome = generator.biome();
     println!("[ WORLD ] Current Biome: {}", biome.as_str());
-    println!(
-        "[ WORLD ] Fractal Iterations: {}",
-        biome.fractal_iterations()
-    );
+    println!("[ WORLD ] Fractal Iterations: {}", biome.fractal_iterations());
     println!("[ WORLD ] Fractal Power: {:.1}", biome.fractal_power());
     println!(
         "[ WORLD ] Corruption Intensity: {:.2}",
         biome.corruption_intensity()
     );
 
-    // --- Chunk Lifecycle Demonstration ---
+    // --- Chunk Lifecycle ---
     println!();
     println!("═══════ CHUNK LIFECYCLE ═══════");
 
@@ -99,18 +98,15 @@ fn main() {
     println!("[ CHUNK ] Seed: {}", chunk.seed);
     println!("[ CHUNK ] Initial state: {:?}", chunk.state);
 
-    // Transition through loading states
     chunk.state = ChunkState::Loading;
     println!("[ CHUNK ] State: {:?}", chunk.state);
 
     chunk.activate();
     println!("[ CHUNK ] State after activate(): {:?}", chunk.state);
 
-    // Corrupt the chunk
     chunk.corrupt();
     println!("[ CHUNK ] State after corrupt(): {:?}", chunk.state);
 
-    // Transition to unloading
     chunk.state = ChunkState::Unloading;
     println!("[ CHUNK ] State: {:?}", chunk.state);
 
@@ -121,7 +117,6 @@ fn main() {
     println!();
     println!("═══════ CHUNK EVALUATION ═══════");
 
-    // Create a fresh active chunk for evaluation
     let eval_coord = ChunkCoord::new(1, 0, 0);
     let mut eval_chunk = Chunk::new(eval_coord, reality.seed());
     eval_chunk.activate();
@@ -149,11 +144,7 @@ fn main() {
     for (i, pos) in test_points.iter().enumerate() {
         let sdf = generator.evaluate_sdf(*pos);
         let density = generator.density(*pos);
-        let solid = if generator.is_solid(*pos) {
-            "SOLID"
-        } else {
-            "VOID"
-        };
+        let solid = if generator.is_solid(*pos) { "SOLID" } else { "VOID" };
         println!(
             "[ WORLD ] Point {}: ({:.1}, {:.1}, {:.1}) -> SDF: {:.4}, Density: {:.2}, {}",
             i, pos.x, pos.y, pos.z, sdf, density, solid
@@ -174,30 +165,98 @@ fn main() {
     );
     println!("[ STREAM ] Chunks loaded: {}", update.loaded);
     println!("[ STREAM ] Chunks unloaded: {}", update.unloaded);
-    println!(
-        "[ STREAM ] Total active chunks: {}",
-        streamer.loaded_count()
-    );
+    println!("[ STREAM ] Total active chunks: {}", streamer.loaded_count());
 
-    // Use get_chunk to retrieve a specific chunk
     let target_coord = ChunkCoord::new(0, 0, 0);
     if let Some(retrieved_chunk) = streamer.get_chunk(&target_coord) {
         println!(
             "[ STREAM ] Retrieved chunk ({},{},{}) state: {:?}",
-            retrieved_chunk.coord.x,
-            retrieved_chunk.coord.y,
-            retrieved_chunk.coord.z,
+            retrieved_chunk.coord.x, retrieved_chunk.coord.y, retrieved_chunk.coord.z,
             retrieved_chunk.state
         );
     }
 
-    // Use evaluate_at to query world at a position through the streamer
     let query_pos = Vec3::new(8.0, 8.0, 8.0);
     let sdf_at_query = streamer.evaluate_at(query_pos, &reality);
     println!(
         "[ STREAM ] World SDF at ({:.1}, {:.1}, {:.1}): {:.4}",
         query_pos.x, query_pos.y, query_pos.z, sdf_at_query
     );
+
+    // --- Phase V: Demon Seed Generator ---
+    println!();
+    println!("══════════════════════════════════════════════");
+    println!("       ⛧ DEMON SEED GENERATOR ⛧");
+    println!("══════════════════════════════════════════════");
+
+    let demon_coord = ChunkCoord::new(3, 5, 2);
+    let demon_tick = reality.tick();
+    let demon_seed = DemonSeed::new(reality.seed(), demon_coord, demon_tick);
+
+    println!("[ DEMON ] Identity Derivation:");
+    println!("  Universe:    {}", demon_seed.universe());
+    println!(
+        "  Coordinate:  ({}, {}, {})",
+        demon_seed.coord().x,
+        demon_seed.coord().y,
+        demon_seed.coord().z
+    );
+    println!("  Spawn Tick:  {}", demon_seed.spawn_tick());
+    println!("  Derived ID:  {}", demon_seed.derive_identity());
+
+    let identity = DemonIdentity::reconstruct(demon_seed);
+
+    println!();
+    println!("[ DEMON ] Anatomy:");
+    println!("  Body Scale:  {:.2}", identity.anatomy.body_scale);
+    println!("  Limb Count:  {}", identity.anatomy.limb_count);
+    println!("  Limb Length: {:.2}", identity.anatomy.limb_length);
+    println!("  Torso:       {}", identity.anatomy.torso_shape_str());
+    println!("  Symmetry:    {}", identity.anatomy.symmetry_str());
+
+    println!();
+    println!("[ DEMON ] Behavior:");
+    println!("  Movement:    {}", identity.behavior.movement_str());
+    println!("  Aggression:  {:.2}", identity.behavior.aggression);
+    println!("  Speed:       {:.2}", identity.behavior.speed);
+    println!("  Perception:  {:.1}", identity.behavior.perception_range);
+    println!("  Attack:      {}", identity.behavior.attack_str());
+
+    println!();
+    println!("[ DEMON ] Mutation:");
+    println!("  Level:       {}", identity.mutation.mutation_level);
+    println!("  Type:        {}", identity.mutation.mutation_type_str());
+    println!("  Material:    {}", identity.mutation.material_str());
+    println!("  Audio:       {}", identity.mutation.audio_str());
+    println!("  Color Hue:   {:.1}", identity.mutation.color_hue);
+
+    println!();
+    println!("[ DEMON ] Genealogy:");
+    println!("  Recursion:   {}", identity.genealogy.recursion_depth);
+    println!("  Lineage:     {}", identity.genealogy.lineage_str());
+    println!("  Threat:      {}", identity.overall_threat().as_str());
+
+    // Demonstrate determinism
+    let identity_again = DemonIdentity::reconstruct(demon_seed);
+    let deterministic = identity == identity_again;
+    println!();
+    println!("[ DEMON ] Determinism check: {}", deterministic);
+
+    // Generate a second demon for comparison
+    let demon_seed_2 = DemonSeed::new(
+        reality.seed(),
+        ChunkCoord::new(7, 12, 4),
+        demon_tick + 100,
+    );
+    let identity_2 = DemonIdentity::reconstruct(demon_seed_2);
+    println!(
+        "[ DEMON ] Second demon threat: {}",
+        identity_2.overall_threat().as_str()
+    );
+
+    // Demonstrate ThreatLevel ordering
+    let threat_comparison = ThreatLevel::Extreme > ThreatLevel::Moderate;
+    println!("[ DEMON ] Threat ordering valid: {}", threat_comparison);
 
     // --- Mutation Log ---
     println!();
@@ -239,6 +298,7 @@ fn main() {
     println!("══════════════════════════════════════════════");
     println!(" Engine Foundation Verified.");
     println!(" Abyss World Generator Online.");
-    println!(" Awaiting Renderer Integration...");
+    println!(" Demon Seed Generator Operational.");
+    println!(" Awaiting Fractal Combat Integration...");
     println!("══════════════════════════════════════════════");
 }
