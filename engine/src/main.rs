@@ -3,12 +3,14 @@
 
 mod core;
 mod fractal;
+mod world;
 
 use core::abyss::MutationRecord;
 use core::random::RandomDomain;
 use core::reality::RealityKernel;
 use core::seed::Seed;
-use fractal::{Scene, Vec3, sdf_sphere};
+use fractal::{sdf_sphere, Scene, Vec3};
+use world::{WorldGenerator, WorldStreamer};
 
 fn main() {
     println!("══════════════════════════════════════════════");
@@ -64,6 +66,45 @@ fn main() {
     println!("[ SDF ] Sphere distance: {:.4}", sphere_d);
 
     println!();
+    println!("═══════ ABYSS WORLD GENERATOR ═══════");
+
+    let generator = WorldGenerator::new(&reality);
+    let biome = generator.biome();
+    println!("[ WORLD ] Current Biome: {}", biome.as_str());
+    println!("[ WORLD ] Fractal Iterations: {}", biome.fractal_iterations());
+    println!("[ WORLD ] Fractal Power: {:.1}", biome.fractal_power());
+    println!("[ WORLD ] Corruption Intensity: {:.2}", biome.corruption_intensity());
+
+    // Evaluate world at a few points
+    let test_points = [
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(5.0, 5.0, 5.0),
+        Vec3::new(10.0, 0.0, 0.0),
+    ];
+
+    for (i, pos) in test_points.iter().enumerate() {
+        let sdf = generator.evaluate_sdf(*pos);
+        let density = generator.density(*pos);
+        let solid = if generator.is_solid(*pos) { "SOLID" } else { "VOID" };
+        println!(
+            "[ WORLD ] Point {}: ({:.1}, {:.1}, {:.1}) -> SDF: {:.4}, Density: {:.2}, {}",
+            i, pos.x, pos.y, pos.z, sdf, density, solid
+        );
+    }
+
+    println!();
+    println!("═══════ CHUNK STREAMING ═══════");
+
+    let mut streamer = WorldStreamer::new(reality.seed(), 1);
+    let player_pos = Vec3::new(0.0, 0.0, 0.0);
+    let update = streamer.update(player_pos);
+
+    println!("[ STREAM ] Player at: ({:.1}, {:.1}, {:.1})", player_pos.x, player_pos.y, player_pos.z);
+    println!("[ STREAM ] Chunks loaded: {}", update.loaded);
+    println!("[ STREAM ] Chunks unloaded: {}", update.unloaded);
+    println!("[ STREAM ] Total active chunks: {}", streamer.loaded_count());
+
+    println!();
     println!("═══════ MUTATION LOG ═══════");
     let history = reality.log().history();
     println!(
@@ -74,7 +115,6 @@ fn main() {
 
     for record in history {
         let r: &MutationRecord = record;
-        // FIXED: 6 placeholders for 6 arguments (Added [{}] for event, and {} for new_state)
         println!(
             "TICK {:04} | [{}] {} -> {} | ΔE: {:.2} ΔC: {:.2}",
             r.tick,
@@ -100,6 +140,7 @@ fn main() {
     println!();
     println!("══════════════════════════════════════════════");
     println!(" Engine Foundation Verified.");
-    println!(" Awaiting GPU Compute Integration...");
+    println!(" Abyss World Generator Online.");
+    println!(" Awaiting Renderer Integration...");
     println!("══════════════════════════════════════════════");
 }
