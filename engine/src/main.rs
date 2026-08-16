@@ -11,10 +11,10 @@ use core::random::RandomDomain;
 use core::reality::RealityKernel;
 use core::seed::Seed;
 use demon::{DemonIdentity, DemonSeed, ThreatLevel};
-use fractal::{sdf_sphere, Scene, Vec3};
+use fractal::{Scene, Vec3, sdf_sphere};
 use world::{
-    Biome, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate, WorldGenerator,
-    WorldStreamer, CHUNK_SIZE,
+    Biome, CHUNK_SIZE, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate,
+    WorldGenerator, WorldStreamer,
 };
 
 fn main() {
@@ -77,7 +77,10 @@ fn main() {
     let generator = WorldGenerator::new(&reality);
     let biome: Biome = generator.biome();
     println!("[ WORLD ] Current Biome: {}", biome.as_str());
-    println!("[ WORLD ] Fractal Iterations: {}", biome.fractal_iterations());
+    println!(
+        "[ WORLD ] Fractal Iterations: {}",
+        biome.fractal_iterations()
+    );
     println!("[ WORLD ] Fractal Power: {:.1}", biome.fractal_power());
     println!(
         "[ WORLD ] Corruption Intensity: {:.2}",
@@ -144,7 +147,11 @@ fn main() {
     for (i, pos) in test_points.iter().enumerate() {
         let sdf = generator.evaluate_sdf(*pos);
         let density = generator.density(*pos);
-        let solid = if generator.is_solid(*pos) { "SOLID" } else { "VOID" };
+        let solid = if generator.is_solid(*pos) {
+            "SOLID"
+        } else {
+            "VOID"
+        };
         println!(
             "[ WORLD ] Point {}: ({:.1}, {:.1}, {:.1}) -> SDF: {:.4}, Density: {:.2}, {}",
             i, pos.x, pos.y, pos.z, sdf, density, solid
@@ -165,13 +172,18 @@ fn main() {
     );
     println!("[ STREAM ] Chunks loaded: {}", update.loaded);
     println!("[ STREAM ] Chunks unloaded: {}", update.unloaded);
-    println!("[ STREAM ] Total active chunks: {}", streamer.loaded_count());
+    println!(
+        "[ STREAM ] Total active chunks: {}",
+        streamer.loaded_count()
+    );
 
     let target_coord = ChunkCoord::new(0, 0, 0);
     if let Some(retrieved_chunk) = streamer.get_chunk(&target_coord) {
         println!(
             "[ STREAM ] Retrieved chunk ({},{},{}) state: {:?}",
-            retrieved_chunk.coord.x, retrieved_chunk.coord.y, retrieved_chunk.coord.z,
+            retrieved_chunk.coord.x,
+            retrieved_chunk.coord.y,
+            retrieved_chunk.coord.z,
             retrieved_chunk.state
         );
     }
@@ -243,11 +255,7 @@ fn main() {
     println!("[ DEMON ] Determinism check: {}", deterministic);
 
     // Generate a second demon for comparison
-    let demon_seed_2 = DemonSeed::new(
-        reality.seed(),
-        ChunkCoord::new(7, 12, 4),
-        demon_tick + 100,
-    );
+    let demon_seed_2 = DemonSeed::new(reality.seed(), ChunkCoord::new(7, 12, 4), demon_tick + 100);
     let identity_2 = DemonIdentity::reconstruct(demon_seed_2);
     println!(
         "[ DEMON ] Second demon threat: {}",

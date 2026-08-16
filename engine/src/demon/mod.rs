@@ -7,8 +7,8 @@ pub mod genealogy;
 pub mod identity;
 pub mod mutation;
 
-pub use anatomy::{Anatomy, Symmetry, TorsoShape};
-pub use behavior::{AttackPattern, Behavior, MovementArchetype};
-pub use genealogy::{Genealogy, Lineage, ThreatLevel};
+// Re-export only types actively used by the engine surface.
+// Internal sub-types remain accessible through the identity's fields
+// (e.g. identity.anatomy.body_scale) without polluting the public API.
+pub use genealogy::ThreatLevel;
 pub use identity::{DemonIdentity, DemonSeed};
-pub use mutation::{AudioProfile, MaterialProfile, Mutation, MutationType};
