@@ -12,15 +12,15 @@ use core::random::RandomDomain;
 use core::reality::RealityKernel;
 use core::seed::Seed;
 use demon::{DemonIdentity, DemonSeed, ThreatLevel};
-use fractal::{Scene, Vec3, sdf_sphere};
+use fractal::{sdf_sphere, Scene, Vec3};
 use gameplay::{
-    DamageEvent, DamageResult, DamageType, EntityId, EntityState, FractalHitZone,
-    GeometryDeformation, NavigationPath, Player, Weapon, WeaponType, find_path, has_line_of_sight,
-    move_towards, raycast,
+    find_path, has_line_of_sight, move_towards, raycast, DamageEvent, DamageResult, DamageType,
+    EntityId, EntityState, FractalHitZone, GeometryDeformation, NavigationPath, Player,
+    RaycastHit, Weapon, WeaponType,
 };
 use world::{
-    Biome, CHUNK_SIZE, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate,
-    WorldGenerator, WorldStreamer,
+    Biome, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate, WorldGenerator,
+    WorldStreamer, CHUNK_SIZE,
 };
 
 fn main() {
@@ -154,11 +154,7 @@ fn main() {
     for (i, pos) in test_points.iter().enumerate() {
         let sdf = generator.evaluate_sdf(*pos);
         let density = generator.density(*pos);
-        let solid = if generator.is_solid(*pos) {
-            "SOLID"
-        } else {
-            "VOID"
-        };
+        let solid = if generator.is_solid(*pos) { "SOLID" } else { "VOID" };
         println!(
             "[ WORLD ] Point {}: ({:.1}, {:.1}, {:.1}) -> SDF: {:.4}, Density: {:.2}, {}",
             i, pos.x, pos.y, pos.z, sdf, density, solid
@@ -262,7 +258,11 @@ fn main() {
     println!();
     println!("[ DEMON ] Determinism check: {}", deterministic);
 
-    let demon_seed_2 = DemonSeed::new(reality.seed(), ChunkCoord::new(7, 12, 4), demon_tick + 100);
+    let demon_seed_2 = DemonSeed::new(
+        reality.seed(),
+        ChunkCoord::new(7, 12, 4),
+        demon_tick + 100,
+    );
     let identity_2 = DemonIdentity::reconstruct(demon_seed_2);
     println!(
         "[ DEMON ] Second demon threat: {}",
@@ -316,6 +316,7 @@ fn main() {
         Weapon::shotgun(),
         Weapon::chainsaw(),
         Weapon::fractal_rifle(),
+        Weapon::abyss_grenade(),
     ] {
         println!(
             "  {} | {} | DMG:{:.0} | DPS:{:.1}",
@@ -359,6 +360,27 @@ fn main() {
         demon.is_alive
     );
 
+    // Demonstrate all damage types and their modifiers
+    println!();
+    println!("[ DAMAGE ] Damage type modifiers:");
+    for dtype in [
+        DamageType::Physical,
+        DamageType::Fractal,
+        DamageType::Corruption,
+        DamageType::Void,
+    ] {
+        let mut dummy = EntityState::new(EntityId::new(100), Vec3::new(0.0, 0.0, 0.0), 1000.0);
+        let ev = DamageEvent::new(
+            EntityId::new(0),
+            EntityId::new(100),
+            10.0,
+            dtype,
+            Vec3::new(0.0, 0.0, 0.0),
+        );
+        let res: DamageResult = gameplay::damage::apply_damage(&mut dummy, &ev);
+        println!("  {:?}: base 10.0 -> applied {:.1}", dtype, res.damage_applied);
+    }
+
     // Geometry deformation
     println!();
     println!("[ GEOMETRY ] Deformation:");
@@ -388,7 +410,7 @@ fn main() {
     // Raycast
     println!();
     println!("[ COLLISION ] Raycast:");
-    let ray = raycast(
+    let ray: Option<RaycastHit> = raycast(
         Vec3::new(-5.0, 0.0, 0.0),
         Vec3::new(1.0, 0.0, 0.0),
         20.0,
