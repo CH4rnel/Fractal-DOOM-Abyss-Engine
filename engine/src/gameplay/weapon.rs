@@ -71,6 +71,10 @@ impl Weapon {
             WeaponType::Fractal,
         )
     }
+
+    pub fn abyss_grenade() -> Self {
+        Self::new(4, "ABYSS GRENADE", 80.0, 0.8, 15.0, WeaponType::Explosive)
+    }
 }
 
 #[cfg(test)]
@@ -86,6 +90,23 @@ mod tests {
     #[test]
     fn weapon_types() {
         assert_eq!(Weapon::shotgun().weapon_type_str(), "RANGED");
+        assert_eq!(Weapon::chainsaw().weapon_type_str(), "MELEE");
         assert_eq!(Weapon::fractal_rifle().weapon_type_str(), "FRACTAL");
+        assert_eq!(Weapon::abyss_grenade().weapon_type_str(), "EXPLOSIVE");
+    }
+
+    #[test]
+    fn weapon_presets_have_valid_parameters() {
+        let weapons = [
+            Weapon::shotgun(),
+            Weapon::chainsaw(),
+            Weapon::fractal_rifle(),
+            Weapon::abyss_grenade(),
+        ];
+        for weapon in &weapons {
+            assert!(weapon.damage > 0.0);
+            assert!(weapon.fire_rate > 0.0);
+            assert!(weapon.range > 0.0);
+        }
     }
 }
