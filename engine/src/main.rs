@@ -167,49 +167,34 @@ fn main() {
 
     // Player
     let mut player = Player::new(Vec3::new(0.0, 0.0, 0.0));
-    println!(
-        "[ PLAYER ] Spawned at ({:.1}, {:.1}, {:.1})",
-        player.entity.position.x, player.entity.position.y, player.entity.position.z
-    );
-    println!(
-        "[ PLAYER ] Health: {:.0}/{:.0}",
-        player.entity.health, player.entity.max_health
-    );
+    println!("[ PLAYER ] Spawned at ({:.1}, {:.1}, {:.1})",
+        player.entity.position.x, player.entity.position.y, player.entity.position.z);
+    println!("[ PLAYER ] Health: {:.0}/{:.0} ({:.2})",
+        player.entity.health, player.entity.max_health, player.entity.health_fraction());
 
     player.rotate(0.5, 0.1);
-    println!(
-        "[ PLAYER ] Rotated: yaw={:.2}, pitch={:.2}",
-        player.yaw, player.pitch
-    );
+    println!("[ PLAYER ] Rotated: yaw={:.2}, pitch={:.2}", player.yaw, player.pitch);
 
     let forward = player.forward_direction();
-    println!(
-        "[ PLAYER ] Forward: ({:.2}, {:.2}, {:.2})",
-        forward.x, forward.y, forward.z
-    );
+    println!("[ PLAYER ] Forward: ({:.2}, {:.2}, {:.2})", forward.x, forward.y, forward.z);
 
     player.move_direction(Vec3::new(1.0, 0.0, 0.0), 0.5);
-    println!(
-        "[ PLAYER ] Moved to: ({:.1}, {:.1}, {:.1})",
-        player.entity.position.x, player.entity.position.y, player.entity.position.z
-    );
+    println!("[ PLAYER ] Moved to: ({:.1}, {:.1}, {:.1})",
+        player.entity.position.x, player.entity.position.y, player.entity.position.z);
+
+    player.jump();
+    println!("[ PLAYER ] Jump velocity: {:.1}", player.entity.velocity.y);
 
     // Weapons
     println!();
     println!("[ WEAPON ] Arsenal:");
-    for w in [
-        Weapon::shotgun(),
-        Weapon::chainsaw(),
-        Weapon::fractal_rifle(),
-    ] {
-        println!(
-            "  {} | {} | DMG:{:.0} | DPS:{:.1}",
-            w.name,
-            w.weapon_type_str(),
-            w.damage,
-            w.dps()
-        );
+    for w in [Weapon::shotgun(), Weapon::chainsaw(), Weapon::fractal_rifle()] {
+        println!("  {} | {} | DMG:{:.0} | DPS:{:.1}",
+            w.name, w.weapon_type_str(), w.damage, w.dps());
     }
+    let fractal_type: WeaponType = WeaponType::Fractal;
+    println!("[ WEAPON ] Rifle matches fractal type: {}",
+        Weapon::fractal_rifle().weapon_type == fractal_type);
 
     // Combat
     println!();
@@ -218,131 +203,52 @@ fn main() {
     println!("  Demon HP: {:.0}/{:.0}", demon.health, demon.max_health);
 
     let dmg_event = DamageEvent::new(
-        EntityId::new(0),
-        EntityId::new(666),
-        35.0,
-        DamageType::Fractal,
-        Vec3::new(5.0, 0.0, 5.0),
+        EntityId::new(0), EntityId::new(666), 35.0, DamageType::Fractal, Vec3::new(5.0, 0.0, 5.0),
     );
-    let dmg_result = gameplay::damage::apply_damage(&mut demon, &dmg_event);
+    let dmg_result: DamageResult = gameplay::damage::apply_damage(&mut demon, &dmg_event);
     println!("  Applied {:.1} fractal damage", dmg_result.damage_applied);
-    println!(
-        "  Geometry deformation: {:.3}",
-        dmg_result.geometry_deformation
-    );
-    println!(
-        "  Demon HP: {:.0}/{:.0}, alive: {}",
-        demon.health, demon.max_health, demon.is_alive
-    );
+    println!("  Geometry deformation: {:.3}", dmg_result.geometry_deformation);
+    println!("  Target died: {}", dmg_result.target_died);
+    println!("  Demon HP: {:.0}/{:.0} ({:.2}), alive: {}",
+        demon.health, demon.max_health, demon.health_fraction(), demon.is_alive);
 
     // Geometry deformation
     println!();
     println!("[ GEOMETRY ] Deformation:");
     let deform = GeometryDeformation::new(Vec3::new(5.0, 0.0, 5.0), 100.0);
-    println!(
-        "  At center: {:.3}",
-        deform.evaluate_at(Vec3::new(5.0, 0.0, 5.0))
-    );
-    println!(
-        "  At edge: {:.3}",
-        deform.evaluate_at(Vec3::new(10.0, 0.0, 5.0))
-    );
+    println!("  At center: {:.3}", deform.evaluate_at(Vec3::new(5.0, 0.0, 5.0)));
+    println!("  At edge: {:.3}", deform.evaluate_at(Vec3::new(10.0, 0.0, 5.0)));
 
     // Hit zones
     println!();
     println!("[ COLLISION ] Fractal hit zones:");
     let zone = FractalHitZone::new(Vec3::new(5.0, 0.0, 5.0), 3.0);
-    println!(
-        "  (5.5,0,5) inside: {}",
-        zone.contains_point(Vec3::new(5.5, 0.0, 5.0))
-    );
-    println!(
-        "  (10,0,10) inside: {}",
-        zone.contains_point(Vec3::new(10.0, 0.0, 10.0))
-    );
+    println!("  (5.5,0,5) inside: {}", zone.contains_point(Vec3::new(5.5, 0.0, 5.0)));
+    println!("  (10,0,10) inside: {}", zone.contains_point(Vec3::new(10.0, 0.0, 10.0)));
 
     // Raycast
     println!();
     println!("[ COLLISION ] Raycast:");
-    let ray = raycast(
-        Vec3::new(-5.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        20.0,
-        &generator,
-    );
+    let ray = raycast(Vec3::new(-5.0, 0.0, 0.0), Vec3::new(1.0, 0.0, 0.0), 20.0, &generator);
     match ray {
-        Some(r) => println!("  HIT at {:.2}", r.distance),
-        None => println!("  NO HIT"),
+        Some(r) => {
+            println!("  HIT at distance {:.2}", r.distance);
+            println!("  Position: ({:.2}, {:.2}, {:.2})", r.position.x, r.position.y, r.position.z);
+            println!("  Normal: ({:.2}, {:.2}, {:.2})", r.surface_normal.x, r.surface_normal.y, r.surface_normal.z);
+        }
+        None => println!("  NO HIT within range"),
     }
 
     // Navigation
     println!();
     println!("[ NAVIGATION ] Pathfinding:");
-    let path = find_path(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(10.0, 0.0, 0.0),
-        &generator,
-        50,
-    );
-    println!(
-        "  Waypoints: {}, Length: {:.2}",
-        path.waypoints.len(),
-        path.total_length
-    );
+    let path: NavigationPath = find_path(Vec3::new(0.0, 0.0, 0.0), Vec3::new(10.0, 0.0, 0.0), &generator, 50);
+    println!("  Waypoints: {}, Length: {:.2}, Empty: {}",
+        path.waypoints.len(), path.total_length, path.is_empty());
 
     let mut mover = EntityState::new(EntityId::new(999), Vec3::new(0.0, 0.0, 0.0), 50.0);
     move_towards(&mut mover, Vec3::new(10.0, 0.0, 0.0), 5.0, 1.0);
-    println!(
-        "  Mover at: ({:.1}, {:.1}, {:.1})",
-        mover.position.x, mover.position.y, mover.position.z
-    );
+    println!("  Mover at: ({:.1}, {:.1}, {:.1})", mover.position.x, mover.position.y, mover.position.z);
 
-    let los = has_line_of_sight(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(5.0, 0.0, 0.0),
-        &generator,
-        20.0,
-    );
+    let los = has_line_of_sight(Vec3::new(0.0, 0.0, 0.0), Vec3::new(5.0, 0.0, 0.0), &generator, 20.0);
     println!("  Line of sight: {}", los);
-
-    // Mutation Log
-    println!();
-    println!("═══════ MUTATION LOG ═══════");
-    let history = reality.log().history();
-    println!(
-        "Total events: {} (Empty: {})",
-        reality.log().len(),
-        reality.log().is_empty()
-    );
-    for r in history {
-        let r: &MutationRecord = r;
-        println!(
-            "  TICK {:04} | [{}] {} -> {} | ΔE:{:.2} ΔC:{:.2}",
-            r.tick,
-            r.event.as_str(),
-            r.previous_state.as_str(),
-            r.new_state.as_str(),
-            r.entropy_delta,
-            r.corruption_delta
-        );
-    }
-
-    // Domain Manifest
-    println!();
-    println!("═══════ DOMAIN MANIFEST ═══════");
-    for domain in RandomDomain::iter_all() {
-        println!("  -> {}", domain.as_str());
-    }
-
-    // RNG
-    println!();
-    println!("═══════ DEMON RNG STREAM ═══════");
-    let mut demons = reality.random_stream(RandomDomain::Demons);
-    println!("Demon Seed Fragment 01: 0x{:016X}", demons.next_u64());
-
-    println!();
-    println!("══════════════════════════════════════════════");
-    println!(" Phase VI: Fractal Combat System Active.");
-    println!(" Awaiting Fractal Bosses...");
-    println!("══════════════════════════════════════════════");
-}
