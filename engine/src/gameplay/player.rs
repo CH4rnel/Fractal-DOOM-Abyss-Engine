@@ -68,7 +68,10 @@ mod tests {
     fn player_forward_at_zero() {
         let player = Player::new(Vec3::new(0.0, 0.0, 0.0));
         let fwd = player.forward_direction();
-        assert!((fwd.z - 1.0).abs() < 0.001);
+        // yaw=0, pitch=0 points along +X axis (yaw measured from +X)
+        assert!((fwd.x - 1.0).abs() < 0.001);
+        assert!(fwd.y.abs() < 0.001);
+        assert!(fwd.z.abs() < 0.001);
     }
 
     #[test]
@@ -76,6 +79,8 @@ mod tests {
         let mut player = Player::new(Vec3::new(0.0, 0.0, 0.0));
         player.rotate(0.0, 10.0);
         assert!(player.pitch <= 1.5);
+        player.rotate(0.0, -20.0);
+        assert!(player.pitch >= -1.5);
     }
 
     #[test]
@@ -83,5 +88,12 @@ mod tests {
         let mut player = Player::new(Vec3::new(0.0, 0.0, 0.0));
         player.move_direction(Vec3::new(1.0, 0.0, 0.0), 1.0);
         assert!(player.entity.position.x > 0.0);
+    }
+
+    #[test]
+    fn player_jump_sets_velocity() {
+        let mut player = Player::new(Vec3::new(0.0, 0.0, 0.0));
+        player.jump();
+        assert!(player.entity.velocity.y > 0.0);
     }
 }
