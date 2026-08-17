@@ -14,8 +14,9 @@ use core::seed::Seed;
 use demon::{DemonIdentity, DemonSeed, ThreatLevel};
 use fractal::{Scene, Vec3, sdf_sphere};
 use gameplay::{
-    DamageEvent, DamageType, EntityId, EntityState, FractalHitZone, GeometryDeformation, Player,
-    Weapon, find_path, has_line_of_sight, move_towards, raycast,
+    DamageEvent, DamageResult, DamageType, EntityId, EntityState, FractalHitZone,
+    NavigationPath, Player, Weapon, WeaponType, find_path, has_line_of_sight,
+    move_towards, raycast, GeometryDeformation,
 };
 use world::{
     Biome, CHUNK_SIZE, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate,
