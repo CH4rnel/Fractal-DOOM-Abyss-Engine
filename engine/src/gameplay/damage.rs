@@ -2,8 +2,8 @@
 //! Damage model with geometry modification.
 //! Core principle: damage modifies geometry, not just HP.
 
-use crate::fractal::Vec3;
 use super::entity::EntityId;
+use crate::fractal::Vec3;
 
 /// Type of damage being applied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,7 +32,13 @@ impl DamageEvent {
         damage_type: DamageType,
         position: Vec3,
     ) -> Self {
-        Self { source, target, amount, damage_type, position }
+        Self {
+            source,
+            target,
+            amount,
+            damage_type,
+            position,
+        }
     }
 }
 
@@ -54,7 +60,7 @@ pub fn apply_damage(target: &mut super::entity::EntityState, event: &DamageEvent
     };
     let effective = event.amount * modifier;
     let died = target.apply_damage(effective);
-    
+
     let geo_def = if event.damage_type == DamageType::Fractal {
         effective * 0.1
     } else {
@@ -105,7 +111,13 @@ mod tests {
     #[test]
     fn physical_damage_full() {
         let mut e = EntityState::new(EntityId::new(1), Vec3::zero(), 100.0);
-        let ev = DamageEvent::new(EntityId::new(0), EntityId::new(1), 50.0, DamageType::Physical, Vec3::zero());
+        let ev = DamageEvent::new(
+            EntityId::new(0),
+            EntityId::new(1),
+            50.0,
+            DamageType::Physical,
+            Vec3::zero(),
+        );
         let r = apply_damage(&mut e, &ev);
         assert!((r.damage_applied - 50.0).abs() < 0.001);
     }
@@ -113,7 +125,13 @@ mod tests {
     #[test]
     fn fractal_damage_bonus() {
         let mut e = EntityState::new(EntityId::new(1), Vec3::zero(), 100.0);
-        let ev = DamageEvent::new(EntityId::new(0), EntityId::new(1), 50.0, DamageType::Fractal, Vec3::zero());
+        let ev = DamageEvent::new(
+            EntityId::new(0),
+            EntityId::new(1),
+            50.0,
+            DamageType::Fractal,
+            Vec3::zero(),
+        );
         let r = apply_damage(&mut e, &ev);
         assert!(r.damage_applied > 50.0);
         assert!(r.geometry_deformation > 0.0);

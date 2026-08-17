@@ -8,9 +8,9 @@ pub mod navigation;
 pub mod player;
 pub mod weapon;
 
+pub use combat::{FractalHitZone, RaycastHit, raycast};
+pub use damage::{DamageEvent, DamageResult, DamageType, GeometryDeformation};
 pub use entity::{EntityId, EntityState};
+pub use navigation::{NavigationPath, find_path, has_line_of_sight, move_towards};
 pub use player::Player;
 pub use weapon::{Weapon, WeaponType};
-pub use damage::{DamageEvent, DamageType, DamageResult, GeometryDeformation};
-pub use combat::{FractalHitZone, RaycastHit, raycast};
-pub use navigation::{NavigationPath, find_path, move_towards, has_line_of_sight};

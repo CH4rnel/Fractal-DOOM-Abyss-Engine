@@ -1,9 +1,9 @@
 //! ⛧-Doom-Slayer-⛧
 //! Procedural enemy navigation through fractal terrain.
 
+use super::entity::EntityState;
 use crate::fractal::Vec3;
 use crate::world::WorldGenerator;
-use super::entity::EntityState;
 
 /// Navigation path through the world.
 #[derive(Debug, Clone, PartialEq)]
@@ -14,7 +14,10 @@ pub struct NavigationPath {
 
 impl NavigationPath {
     pub fn new() -> Self {
-        Self { waypoints: Vec::new(), total_length: 0.0 }
+        Self {
+            waypoints: Vec::new(),
+            total_length: 0.0,
+        }
     }
 
     pub fn add_waypoint(&mut self, wp: Vec3) {

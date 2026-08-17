@@ -30,7 +30,14 @@ impl Weapon {
         range: f64,
         weapon_type: WeaponType,
     ) -> Self {
-        Self { id, name, damage, fire_rate, range, weapon_type }
+        Self {
+            id,
+            name,
+            damage,
+            fire_rate,
+            range,
+            weapon_type,
+        }
     }
 
     pub fn dps(&self) -> f64 {
@@ -55,7 +62,14 @@ impl Weapon {
     }
 
     pub fn fractal_rifle() -> Self {
-        Self::new(3, "REALITY FRACTURE RIFLE", 25.0, 4.0, 50.0, WeaponType::Fractal)
+        Self::new(
+            3,
+            "REALITY FRACTURE RIFLE",
+            25.0,
+            4.0,
+            50.0,
+            WeaponType::Fractal,
+        )
     }
 }
 

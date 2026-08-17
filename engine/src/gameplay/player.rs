@@ -1,8 +1,8 @@
 //! ⛧-Doom-Slayer-⛧
 //! Player entity with movement and orientation.
 
-use crate::fractal::Vec3;
 use super::entity::{EntityId, EntityState};
+use crate::fractal::Vec3;
 
 /// Player entity with position, orientation, and movement.
 #[derive(Debug, Clone, PartialEq)]
