@@ -12,15 +12,15 @@ use core::random::RandomDomain;
 use core::reality::RealityKernel;
 use core::seed::Seed;
 use demon::{DemonIdentity, DemonSeed, ThreatLevel};
-use fractal::{sdf_sphere, Scene, Vec3};
+use fractal::{Scene, Vec3, sdf_sphere};
 use gameplay::{
-    find_path, has_line_of_sight, move_towards, raycast, DamageEvent, DamageResult, DamageType,
-    EntityId, EntityState, FractalHitZone, GeometryDeformation, NavigationPath, Player,
-    RaycastHit, Weapon, WeaponType,
+    DamageEvent, DamageResult, DamageType, EntityId, EntityState, FractalHitZone,
+    GeometryDeformation, NavigationPath, Player, RaycastHit, Weapon, WeaponType, find_path,
+    has_line_of_sight, move_towards, raycast,
 };
 use world::{
-    Biome, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate, WorldGenerator,
-    WorldStreamer, CHUNK_SIZE,
+    Biome, CHUNK_SIZE, Chunk, ChunkCoord, ChunkEvaluation, ChunkState, StreamUpdate,
+    WorldGenerator, WorldStreamer,
 };
 
 fn main() {
@@ -154,7 +154,11 @@ fn main() {
     for (i, pos) in test_points.iter().enumerate() {
         let sdf = generator.evaluate_sdf(*pos);
         let density = generator.density(*pos);
-        let solid = if generator.is_solid(*pos) { "SOLID" } else { "VOID" };
+        let solid = if generator.is_solid(*pos) {
+            "SOLID"
+        } else {
+            "VOID"
+        };
         println!(
             "[ WORLD ] Point {}: ({:.1}, {:.1}, {:.1}) -> SDF: {:.4}, Density: {:.2}, {}",
             i, pos.x, pos.y, pos.z, sdf, density, solid
@@ -258,11 +262,7 @@ fn main() {
     println!();
     println!("[ DEMON ] Determinism check: {}", deterministic);
 
-    let demon_seed_2 = DemonSeed::new(
-        reality.seed(),
-        ChunkCoord::new(7, 12, 4),
-        demon_tick + 100,
-    );
+    let demon_seed_2 = DemonSeed::new(reality.seed(), ChunkCoord::new(7, 12, 4), demon_tick + 100);
     let identity_2 = DemonIdentity::reconstruct(demon_seed_2);
     println!(
         "[ DEMON ] Second demon threat: {}",
@@ -378,7 +378,10 @@ fn main() {
             Vec3::new(0.0, 0.0, 0.0),
         );
         let res: DamageResult = gameplay::damage::apply_damage(&mut dummy, &ev);
-        println!("  {:?}: base 10.0 -> applied {:.1}", dtype, res.damage_applied);
+        println!(
+            "  {:?}: base 10.0 -> applied {:.1}",
+            dtype, res.damage_applied
+        );
     }
 
     // Geometry deformation
