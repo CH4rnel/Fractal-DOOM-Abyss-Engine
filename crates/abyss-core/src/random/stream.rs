@@ -1,12 +1,12 @@
 //! ⛧-Doom-Slayer-⛧
 //! §B4: Deterministic RNG Stack v2 - Domain-isolated stream generator.
 
-use rand::SeedableRng;
-use rand::RngCore;
-use rand::Rng;
-use rand_xoshiro::Xoshiro256PlusPlus;
-use crate::seed::Seed;
 use super::domain::RandomDomain;
+use crate::seed::Seed;
+use rand::Rng;
+use rand::RngCore;
+use rand::SeedableRng;
+use rand_xoshiro::Xoshiro256PlusPlus;
 
 const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
 const FNV_PRIME: u64 = 0x100000001b3;
@@ -57,13 +57,13 @@ impl RandomStream {
         let base = domain_seed(seed.value(), domain, salt);
         let mut state = base;
         let mut seed_bytes = [0u8; 32];
-        
+
         // Four chained SplitMix64 rounds seed the four 64-bit words of xoshiro's state
         for i in 0..4 {
             let val = splitmix64_next(&mut state);
             seed_bytes[i * 8..(i + 1) * 8].copy_from_slice(&val.to_le_bytes());
         }
-        
+
         Self {
             rng: Xoshiro256PlusPlus::from_seed(seed_bytes),
         }
@@ -73,7 +73,7 @@ impl RandomStream {
     pub fn next_u64(&mut self) -> u64 {
         self.rng.next_u64()
     }
-    
+
     /// Returns the next pseudo-random f64 in [0, 1).
     pub fn next_f64(&mut self) -> f64 {
         self.rng.gen()
@@ -103,7 +103,7 @@ mod tests {
         fn isolation_invariant(seed: u64, salt: u64) {
             let mut s_geom = RandomStream::with_salt(Seed::new(seed), RandomDomain::Geometry, salt);
             let mut s_demon = RandomStream::with_salt(Seed::new(seed), RandomDomain::Demons, salt);
-            
+
             let mut geom_vals = Vec::new();
             let mut demon_vals = Vec::new();
             for _ in 0..50 {
