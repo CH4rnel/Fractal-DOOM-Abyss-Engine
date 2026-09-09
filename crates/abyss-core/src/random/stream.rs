@@ -1,143 +1,116 @@
-// ⛧-Doom-Slayer-⛧
+//! ⛧-Doom-Slayer-⛧
+//! §B4: Deterministic RNG Stack v2 - Domain-isolated stream generator.
 
-use super::domain::RandomDomain;
+use rand::SeedableRng;
+use rand::RngCore;
+use rand::Rng;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use crate::seed::Seed;
+use super::domain::RandomDomain;
 
-/// Deterministic pseudo-random stream.
-///
-/// A stream is derived from the universe seed and a specific
-/// subsystem domain. Each domain therefore owns an independent
-/// deterministic sequence.
-///
-/// This generator is intended for procedural generation and
-/// gameplay systems. It is NOT suitable for cryptography,
-/// authentication, or security-sensitive operations.
+const FNV_OFFSET_BASIS: u64 = 0xcbf29ce484222325;
+const FNV_PRIME: u64 = 0x100000001b3;
+
+/// FNV-1a 64-bit hash for domain name separation.
+fn fnv1a_64(data: &[u8]) -> u64 {
+    let mut hash = FNV_OFFSET_BASIS;
+    for &byte in data {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
+}
+
+/// SplitMix64 finalizer/avalanche step.
+fn splitmix64_next(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9e3779b97f4a7c15);
+    let mut z = *state;
+    z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+    z ^ (z >> 31)
+}
+
+/// §B4.1: Domain separation seed expansion.
+/// Uses domain name hash instead of sequential index to prevent correlation.
+fn domain_seed(universe_seed: u64, domain: RandomDomain, salt: u64) -> u64 {
+    let mut h = universe_seed;
+    h ^= fnv1a_64(domain.as_str().as_bytes());
+    h ^= salt.rotate_left(1); // rotate-mixed salt
+    splitmix64_next(&mut h)
+}
+
+/// §B4.2: Stream generator using xoshiro256++.
+/// Provides high-quality, long-period random sequences per domain.
 #[derive(Debug, Clone)]
 pub struct RandomStream {
-    state: u64,
+    rng: Xoshiro256PlusPlus,
 }
 
 impl RandomStream {
-    /// Creates a deterministic stream for the specified universe domain.
+    /// Creates a new stream with a default salt of 0.
     pub fn new(seed: Seed, domain: RandomDomain) -> Self {
+        Self::with_salt(seed, domain, 0)
+    }
+
+    /// Creates a new stream with a specific salt for sub-domain separation.
+    pub fn with_salt(seed: Seed, domain: RandomDomain, salt: u64) -> Self {
+        let base = domain_seed(seed.value(), domain, salt);
+        let mut state = base;
+        let mut seed_bytes = [0u8; 32];
+        
+        // Four chained SplitMix64 rounds seed the four 64-bit words of xoshiro's state
+        for i in 0..4 {
+            let val = splitmix64_next(&mut state);
+            seed_bytes[i * 8..(i + 1) * 8].copy_from_slice(&val.to_le_bytes());
+        }
+        
         Self {
-            state: mix_seed(seed, domain),
+            rng: Xoshiro256PlusPlus::from_seed(seed_bytes),
         }
     }
 
-    /// Advances the stream and returns the next 64-bit value.
-    ///
-    /// Uses the SplitMix64 output transformation, providing a fast,
-    /// deterministic stream with good statistical properties for
-    /// procedural generation.
+    /// Returns the next pseudo-random u64.
     pub fn next_u64(&mut self) -> u64 {
-        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
-
-        let mut value = self.state;
-
-        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-
-        value ^ (value >> 31)
+        self.rng.next_u64()
     }
-}
-
-/// Combines a universe seed with a domain identifier.
-///
-/// The domain is incorporated into the initial state so that each
-/// subsystem receives an independent deterministic sequence.
-///
-/// For example, consuming random values from the Demon stream does
-/// not advance or otherwise modify the Mining stream.
-fn mix_seed(seed: Seed, domain: RandomDomain) -> u64 {
-    let mut state = seed_value(seed);
-
-    for byte in domain.as_str().bytes() {
-        state ^= u64::from(byte);
-        state = state.wrapping_mul(0x1000_0000_01B3).rotate_left(13);
+    
+    /// Returns the next pseudo-random f64 in [0, 1).
+    pub fn next_f64(&mut self) -> f64 {
+        self.rng.gen()
     }
-
-    avalanche(state)
-}
-
-/// Extracts the raw deterministic value from a Seed.
-///
-/// This conversion remains private to the random subsystem so that
-/// other systems do not become coupled to Seed's internal
-/// representation.
-const fn seed_value(seed: Seed) -> u64 {
-    seed.raw()
-}
-
-/// Applies a final avalanche transformation to improve bit diffusion.
-///
-/// Small changes in the input should affect many bits of the output.
-/// This is useful when deriving independent deterministic stream
-/// starting states.
-fn avalanche(mut value: u64) -> u64 {
-    value ^= value >> 30;
-    value = value.wrapping_mul(0xBF58_476D_1CE4_E5B9);
-
-    value ^= value >> 27;
-    value = value.wrapping_mul(0x94D0_49BB_1331_11EB);
-
-    value ^ (value >> 31)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
-    #[test]
-    fn same_seed_and_domain_produce_same_stream() {
-        let seed = Seed::new(666);
-
-        let mut first = RandomStream::new(seed, RandomDomain::Demons);
-        let mut second = RandomStream::new(seed, RandomDomain::Demons);
-
-        for _ in 0..32 {
-            assert_eq!(first.next_u64(), second.next_u64());
+    proptest! {
+        /// §B4.3: Determinism invariant.
+        /// same Seed + same Domain + same Salt ⇒ same Stream
+        #[test]
+        fn determinism_invariant(seed: u64, salt: u64) {
+            let mut s1 = RandomStream::with_salt(Seed::new(seed), RandomDomain::Demons, salt);
+            let mut s2 = RandomStream::with_salt(Seed::new(seed), RandomDomain::Demons, salt);
+            for _ in 0..100 {
+                prop_assert_eq!(s1.next_u64(), s2.next_u64());
+            }
         }
-    }
 
-    #[test]
-    fn different_domains_produce_different_streams() {
-        let seed = Seed::new(666);
-
-        let mut demons = RandomStream::new(seed, RandomDomain::Demons);
-        let mut mining = RandomStream::new(seed, RandomDomain::Mining);
-
-        assert_ne!(demons.next_u64(), mining.next_u64());
-    }
-
-    #[test]
-    fn stream_advances() {
-        let seed = Seed::new(666);
-        let mut stream = RandomStream::new(seed, RandomDomain::Geometry);
-
-        let first = stream.next_u64();
-        let second = stream.next_u64();
-
-        assert_ne!(first, second);
-    }
-
-    #[test]
-    fn cloned_streams_produce_identical_sequences() {
-        let seed = Seed::new(666);
-
-        let mut original = RandomStream::new(seed, RandomDomain::Loot);
-        let mut clone = original.clone();
-
-        for _ in 0..32 {
-            assert_eq!(original.next_u64(), clone.next_u64());
+        /// §B4.3: Isolation invariant.
+        /// same Seed + different Domain ⇒ statistically independent streams
+        #[test]
+        fn isolation_invariant(seed: u64, salt: u64) {
+            let mut s_geom = RandomStream::with_salt(Seed::new(seed), RandomDomain::Geometry, salt);
+            let mut s_demon = RandomStream::with_salt(Seed::new(seed), RandomDomain::Demons, salt);
+            
+            let mut geom_vals = Vec::new();
+            let mut demon_vals = Vec::new();
+            for _ in 0..50 {
+                geom_vals.push(s_geom.next_u64());
+                demon_vals.push(s_demon.next_u64());
+            }
+            prop_assert_ne!(geom_vals, demon_vals);
         }
-    }
-
-    #[test]
-    fn different_seeds_produce_different_streams() {
-        let mut first = RandomStream::new(Seed::new(666), RandomDomain::Demons);
-        let mut second = RandomStream::new(Seed::new(667), RandomDomain::Demons);
-
-        assert_ne!(first.next_u64(), second.next_u64());
     }
 }

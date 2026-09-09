@@ -4,4 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-# Зависимости будут добавлены по мере необходимости (rand_xoshiro, blake3 и т.д.)
+rand = "0.8"
+rand_xoshiro = "0.6"
+blake3 = "1.5" # Предварительно добавляем для Шага 1.2
+
+[dev-dependencies]
+proptest = "1.4"

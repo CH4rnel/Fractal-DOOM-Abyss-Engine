@@ -11,6 +11,9 @@ use std::fmt;
 pub struct Seed(u64);
 
 impl Seed {
+    pub const fn value(&self) -> u64 {
+        self.0
+    }
     /// Creates a seed from a raw 64-bit value.
     pub const fn new(value: u64) -> Self {
         Self(value)
