@@ -1,11 +1,10 @@
-[package]
-name = "fractal-doom-abyss-engine"
+[workspace]
+resolver = "2"
+members = [
+    "crates/abyss-core",
+    # Остальные крейты будут добавлены по мере рефакторинга в Phase 1-2
+]
+
+[workspace.package]
 version = "0.1.0"
-edition = "2024"
-default-run = "fractal-doom-abyss-engine"
-
-[dependencies]
-
-[[bin]]
-name = "fractal-doom-abyss-engine"
-path = "engine/src/main.rs"
+edition = "2021"

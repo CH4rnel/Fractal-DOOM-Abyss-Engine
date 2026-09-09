@@ -1,1 +1,4 @@
 /target
+
+# Persistence is handled in Phase 8. Directory removed to avoid confusion.
+saves/

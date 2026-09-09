@@ -1,0 +1,7 @@
+[package]
+name = "abyss-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# Зависимости будут добавлены по мере необходимости (rand_xoshiro, blake3 и т.д.)

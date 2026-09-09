@@ -1,7 +1,7 @@
 // ⛧-Doom-Slayer-⛧
 
 use super::domain::RandomDomain;
-use crate::core::seed::Seed;
+use crate::seed::Seed;
 
 /// Deterministic pseudo-random stream.
 ///
